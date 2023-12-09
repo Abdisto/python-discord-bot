@@ -1,0 +1,9 @@
+[Unit]
+Description=discord-bot-script
+
+[Service]
+Type=oneshot
+ExecStart=/bin/su - abdist -c '/home/abdist/discord-bot/discord-bot.sh'
+
+[Install]
+WantedBy=multi-user.target
