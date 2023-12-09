@@ -20,5 +20,5 @@ async function getVideoUrls(playlistOrVideoUrl) {
 }
 
 // Example usage:
-const playlistOrVideoUrl = process.argv[2];
-getVideoUrls(playlistOrVideoUrl);
+//    const playlistOrVideoUrl = process.argv[2];
+//    getVideoUrls(playlistOrVideoUrl);
