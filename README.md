@@ -6,6 +6,6 @@ We are using the os library from python to parse the DISCORD_TOKEN and API_KEY f
 to add these u just need to add them inside the /etc/environment file, It should something like that:
 
 ```
-$DISCORD_TOKEN="yourdiscordtoken"
-$API_KEY="yourapikey"
+sudo sh -c 'echo DISCORD_TOKEN="yourdiscordtoken" >> /etc/environment'
+sudo sh -c 'echo API_KEY="yourapikey" >> /etc/environment'
 ```
