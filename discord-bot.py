@@ -1,7 +1,6 @@
 import os
 import discord
-from discord.ext import tasks
-from discord import command 
+from discord.ext import tasks 
 from discord.commands import Option
 from datetime import datetime
 import yt_dlp
@@ -35,15 +34,15 @@ def print_colored_text(text, color):
 
 def print_timestamp(text):
     date = datetime.now().strftime('%d.%m.%y')
-    time = datetime.now().strftime('%H:%M')
+    time = datetime.now().strftime('%H:%M:%S')
     print(f"[{TextColor.RED}{date}{TextColor.RESET}| {TextColor.CYAN}{time}{TextColor.RESET}] {text}{TextColor.RESET}\n", end='')
 
 def print_timestamp_ext(text, extend):
     date = datetime.now().strftime('%d.%m.%y')
-    time = datetime.now().strftime('%H:%M')
+    time = datetime.now().strftime('%H:%M:%S')
     print(f"[{TextColor.RED}{date}{TextColor.RESET}| {TextColor.CYAN}{time}{TextColor.RESET}] {text}{TextColor.RESET}{TextColor.RED}{extend}{TextColor.RESET}\n", end='')
 
-@tasks.loop(minutes=10)  # Run this task every 10 minutes
+@tasks.loop(minutes=2)  # Run this task every 10 minutes
 async def check_alone_status():
     for vc in bot.voice_clients:
         if len(vc.channel.members) == 1:  # The bot is the only member in the channel
@@ -62,6 +61,8 @@ ydlp_opts = {
     'progress': True,
     'skip_download': True,
 }
+discord_token = os.getenv('DISCORD_TOKEN')
+apikey = os.getenv('API_KEY')
 
 async def join_channel(ctx):
     if ctx.voice_client is not None and ctx.voice_client.is_connected():
@@ -69,7 +70,6 @@ async def join_channel(ctx):
     channel = ctx.author.voice.channel
     if channel:
         voice_channel = await channel.connect()
-        # Clear the queue and song names when joining a new channel
         song_queue.clear()
         song_names.clear()
         return voice_channel
@@ -81,7 +81,7 @@ async def join_channel(ctx):
 async def fetch_songs(ctx, url):
     print_timestamp("Fetching songs")
     try:
-        result = subprocess.run(['node', 'discord-bot/getVideoUrls.js', url], capture_output=True, text=True)
+        result = subprocess.run(['node', 'discord-bot/getVideoUrls.js', url, apikey], capture_output=True, text=True)
         if result.returncode == 0:
             videos = json.loads(result.stdout)
             for video in videos:
@@ -91,9 +91,9 @@ async def fetch_songs(ctx, url):
             print_timestamp("Finished fetching song/s.")
             await ctx.followup.send("Added song/s to the queue.")
         else:
-            print_timestamp_ext('Error:', result.stderr)
+            print_timestamp_ext('Error: ', result.stderr)
     except Exception as e:
-        print_timestamp_ext('Exception:', e)
+        print_timestamp_ext('Exception: ', e)
 
 def after_playing(ctx, error):
     if error:
@@ -116,7 +116,7 @@ def after_playing(ctx, error):
 
 # Function to stream music
 async def stream_music(ctx, url):
-    try:    
+    try:
         with yt_dlp.YoutubeDL(ydlp_opts) as ydlp:
             info = ydlp.extract_info(url, download=False)
 
@@ -125,15 +125,15 @@ async def stream_music(ctx, url):
 
         options = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 60"
         voice_channel.play(discord.FFmpegPCMAudio(info['url'], before_options=options), after=lambda e: after_playing(ctx, e))
+        await ctx.followup.send(f"Started Playing: {url}")
     except Exception as e:
         print_timestamp_ext("An error occurred while streaming: ", e)
-        await ctx.send(f"An error occurred while streaming: {e}")
 
 # Function to play the next song in the queue
 async def play_next(ctx):
     # Wait for songs to be added to the queue
     while not song_queue:
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
 
     # Play the next song in the queue
     url = song_queue.pop(0)
@@ -157,7 +157,7 @@ async def play(ctx, url: str):
 
     if not voice_client.is_playing():
         while not song_queue:
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
         await play_next(ctx)
 
 @bot.slash_command(name='skip', description='Skips the current track')
@@ -169,8 +169,10 @@ async def skip(ctx):
         await ctx.followup.send("The bot is not connected to a voice channel.")
     elif voice_client.is_playing():
         voice_client.stop()
-        await play_next(ctx)
         await ctx.followup.send("Skipping current track.")
+        while voice_client.is_playing():
+            await asyncio.sleep(0.1)
+        await play_next(ctx)
     else:
         await ctx.followup.send("There's nothing to skip!")
 
@@ -233,6 +235,8 @@ async def stop(ctx):
     if voice_client is None:
         await ctx.followup.send("The bot is not connected to a voice channel.")
     elif voice_client.is_playing():
+        song_queue.clear()
+        song_names.clear()
         voice_client.stop()
         await ctx.followup.send("Stopped the song.")
     else:
@@ -313,4 +317,4 @@ async def on_ready():
     if not check_alone_status.is_running():
         check_alone_status.start()
 
-bot.run(os.getenv('DISCORD_TOKEN'))
+bot.run(discord_token)
