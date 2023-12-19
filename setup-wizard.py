@@ -1,6 +1,5 @@
 #!/path/to/python3.10
 
-#Create .service file
 import subprocess
 import os
 import inquirer
@@ -44,7 +43,6 @@ def setTokens(token, variable_name):
 	command_list = ['bash', '-c', command]
 	process = subprocess.Popen(command_list, stdout=subprocess.PIPE, shell=False)
 
-# Generate the sh file
 def genShFile(sh_file_path, relative_path):
 	sh_file_content = f'''#!/bin/bash
 set -x
@@ -60,8 +58,6 @@ fi'''
 	with open(sh_file_path, "w") as file:
 		file.write(sh_file_content)
 
-
-# Generate the service file
 def genServiceFile(service_file_path, relative_path):
 	service_file_content = f'''[Unit]
 Description=discord-bot-script
