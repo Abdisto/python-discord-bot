@@ -43,6 +43,29 @@ def run_node_script(script_path, playlist_url):
         print('Exception:', e)
         return []
 
+async def fetch_songs(ctx, url):
+    print_timestamp('Fetching songs')
+    try:
+        global song_queue, song_names
+        result = subprocess.run(['node', f'{os.path.dirname(os.path.abspath(__file__))}/getVideoUrls.js', url, apikey], capture_output=True, text=True)
+        if result.returncode == 0:
+            try:
+                videos = json.loads(result.stdout)
+            except json.JSONDecodeError:
+                print_timestamp('No videos found in the playlist.', 'Error: ', 1)
+                await ctx.followup.send('Please provide a valid url (no youtube mix url).')
+                return
+            for video in videos:
+                song_queue.append(video['url'])
+                song_names.append(video['name']) 
+                print_timestamp(f"{video['name']}", 'Added to queue: ', 2, f"{video['url']}")
+            print_timestamp('Finished fetching song/s.')
+            await ctx.followup.send('Added song/s to the queue.')
+        else:
+            print_timestamp(result.stderr, 'Error: ', 1)
+    except Exception as e:
+        print_timestamp(e, 'Exception: ', 1)
+
 # Function to stream music
 async def stream_music(ctx, url, self):
     global song_queue, song_names
@@ -65,28 +88,6 @@ async def stream_music(ctx, url, self):
     except Exception as e:
         print_timestamp(e, 'An error occurred while streaming: ', 1)
 
-async def fetch_songs(ctx, url):
-    print_timestamp('Fetching songs')
-    try:
-        global song_queue, song_names
-        result = subprocess.run(['node', f'{os.path.dirname(os.path.abspath(__file__))}/getVideoUrls.js', url, apikey], capture_output=True, text=True)
-        if result.returncode == 0:
-            try:
-                videos = json.loads(result.stdout)
-            except json.JSONDecodeError:
-                print_timestamp('No videos found in the playlist.', 'Error: ', 1)
-                await ctx.followup.send('Please provide a valid url (no youtube mix url).')
-                return
-            for video in videos:
-                song_queue.append(video['url'])
-                song_names.append(video['name']) 
-                print_timestamp(f"{video['name']}", 'Added to queue: ', 2, f"{video['url']}")
-            print_timestamp('Finished fetching song/s.')
-            await ctx.followup.send('Added song/s to the queue.')
-        else:
-            print_timestamp(result.stderr, 'Error: ', 1)
-    except Exception as e:
-        print_timestamp(e, 'Exception', 1)
 
 async def join_channel(ctx):
     if ctx.voice_client is not None and ctx.voice_client.is_connected():

@@ -5,36 +5,26 @@ import os
 import inquirer
 
 def main():
-	os.setuid(0)
-	service_file_path = "/etc/systemd/system/discord-bot-script.service"
-	sh_file_path = f"{os.path.dirname(os.path.abspath(__file__))}/discord-bot.sh"
-	relative_path = f"{os.path.dirname(os.path.abspath(__file__))}"
+	try:
+		os.setuid(0)
+		service_file_path = "/etc/systemd/system/discord-bot-script.service"
+		sh_file_path = f"{os.path.dirname(os.path.abspath(__file__))}/discord-bot.sh"
+		relative_path = f"{os.path.dirname(os.path.abspath(__file__))}"
 
-	sequence = config()
+		sequence = config()
 
-	if sequence == 2:
-		genShFile(sh_file_path, relative_path)
-		genServiceFile(service_file_path, relative_path)
-	else:
-		if sequence == 0:
-			genShFile(sh_file_path, relative_path)
-			genServiceFile(service_file_path, relative_path)
-			subprocess.run(["chmod", "+x", sh_file_path])
-			subprocess.run(["chown", "root", sh_file_path])
-			subprocess.run(["chmod", "+x", service_file_path])
+		if sequence == 0 or sequence == 1:
+		    apikey, discord_token = setup(sequence)
+		    setTokens(apikey, "APIKEY")
+		    setTokens(discord_token, "DISCORD_TOKEN")
 
-		apikey, discord_token = setup(sequence)
+		if sequence == 0 or sequence == 2:
+		    configure_service(sh_file_path, relative_path, service_file_path, sequence)
 
-		setTokens(apikey, "APIKEY")
-		setTokens(discord_token, "DISCORD_TOKEN")
+		print('Finished succesfully, please reboot your system')
 
-	print('''\nTo enable the automatic startup of you Disocrd Bot please execute the following commands:
-
-	- $sudo systemctl daemon-reload -
-	- $sudo systemctl start discord-bot-script.service -
-	- $sudo systemctl enable discord-bot-script.service -
-	- $sudo reboot -
-	''')
+	except:
+		print('Error, please consult the maintainer')
 
 def setTokens(token, variable_name):
 	if not token.strip():
@@ -106,6 +96,18 @@ def setup(sequence):
 		return setup["token"], setup["key"]
 	else:
 		print("An error occurred. Please consult the maintainer!")
+
+def configure_service(sh_file_path, relative_path, service_file_path, sequence):
+	genShFile(sh_file_path, relative_path)
+	genServiceFile(service_file_path, relative_path)
+
+	subprocess.run(["chmod", "+x", sh_file_path])
+	subprocess.run(["chown", "root", sh_file_path])
+	subprocess.run(["chmod", "+x", service_file_path])
+
+	subprocess.run(["systemctl", "daemon-reload"])
+	subprocess.run(["systemctl", "start", "discord-bot-script.service"])
+	subprocess.run(["systemctl", "enable", "discord-bot-script.service"])
 
 
 if __name__ == "__main__":
