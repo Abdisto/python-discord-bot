@@ -88,7 +88,6 @@ async def stream_music(ctx, url, self):
     except Exception as e:
         print_timestamp(e, 'An error occurred while streaming: ', 1)
 
-
 async def join_channel(ctx):
     if ctx.voice_client is not None and ctx.voice_client.is_connected():
         return ctx.voice_client
@@ -106,7 +105,6 @@ async def join_channel(ctx):
         await ctx.followup.send('You are not in a voice channel.')
         print_timestamp('Person requesting music playback is not in a voice channel.', 'User-Error: ')
         return None
-
 
 def after_playing(ctx, error, self):
     if error:
@@ -144,7 +142,6 @@ class Music(commands.Cog):
         voice_client = await join_channel(ctx)
         if voice_client is None:
             return
-
 
         await fetch_songs(ctx, url)
         if not voice_client.is_playing():
