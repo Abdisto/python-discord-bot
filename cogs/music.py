@@ -43,9 +43,32 @@ def run_node_script(script_path, playlist_url):
         print('Exception:', e)
         return []
 
+# Function to stream music
+async def stream_music(ctx, url, self):
+    global song_queue, song_names
+    first_play_ctx = None
+    if first_play_ctx is None:
+        first_play_ctx = ctx
+    try:
+        with yt_dlp.YoutubeDL(ydlp_opts) as ydlp:
+            print_timestamp('Getting Streamlink')
+            info = ydlp.extract_info(url, download=False)
+            # Store song info in cache for future use
+            song_infos[url] = info
+
+        voice_channel = await join_channel(ctx)
+        print_timestamp(info['title'], 'Streaming audio from: ')
+
+        options = '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 60'
+        voice_channel.play(discord.FFmpegPCMAudio(info['url'], before_options=options), after=lambda e: after_playing(ctx, e, self))
+        await ctx.followup.send(f'Started Playing: {url}')
+    except Exception as e:
+        print_timestamp(e, 'An error occurred while streaming: ', 1)
+
 async def fetch_songs(ctx, url):
     print_timestamp('Fetching songs')
     try:
+        global song_queue, song_names
         result = subprocess.run(['node', f'{os.path.dirname(os.path.abspath(__file__))}/getVideoUrls.js', url, apikey], capture_output=True, text=True)
         if result.returncode == 0:
             try:
@@ -68,47 +91,23 @@ async def fetch_songs(ctx, url):
 async def join_channel(ctx):
     if ctx.voice_client is not None and ctx.voice_client.is_connected():
         return ctx.voice_client
-    channel = ctx.author.voice.channel
-    if channel:
-        voice_channel = await channel.connect()
-        song_queue.clear()
-        song_names.clear()
-        return voice_channel
-    else:
-        await ctx.send('You are not in a voice channel.')
+    try: 
+        channel = ctx.author.voice.channel
+        if channel:
+            voice_channel = await channel.connect()
+            song_queue.clear()
+            song_names.clear()
+            return voice_channel
+        else:
+            await ctx.followup.send('Something went wrong.')
+            print_timestamp('Something went wrong, when trying to join channel.', 'Error: ', 1)
+    except:
+        await ctx.followup.send('You are not in a voice channel.')
         print_timestamp('Person requesting music playback is not in a voice channel.', 'User-Error: ')
         return None
 
-# Function to stream music
-async def stream_music(ctx, url):
-    first_play_ctx = None
-    if first_play_ctx is None:
-        first_play_ctx = ctx
-    try:
-        while not song_queue:
-            await asyncio.sleep(0.5)
 
-        # Check if song info is already cached
-        if url in song_infos:
-            info = song_infos[url]
-        else:
-            with yt_dlp.YoutubeDL(ydlp_opts) as ydlp:
-                print_timestamp('Getting Streamlink')
-                info = ydlp.extract_info(url, download=False)
-                # Store song info in cache for future use
-                song_infos[url] = info
-
-        voice_channel = await join_channel(ctx)
-        print_timestamp(info['title'], 'Streaming audio from: ')
-
-        options = '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 60'
-        voice_channel.play(discord.FFmpegPCMAudio(info['url'], before_options=options), after=lambda e: after_playing(ctx, e))
-        await ctx.followup.send(f'Started Playing: {url}')
-    except Exception as e:
-        print_timestamp(e, 'An error occurred while streaming: ', 1)
-
-# Function to stream music
-def after_playing(ctx, error):
+def after_playing(ctx, error, self):
     if error:
         print_timestamp(error, 'An error occurred while playing: ', 1)
         loop = self.bot.loop
@@ -130,8 +129,6 @@ def after_playing(ctx, error):
         loop.create_task(stream_music(ctx, song_queue.pop(0)))
 
 
-
-
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -139,24 +136,21 @@ class Music(commands.Cog):
     # Define the 'play' command
     @commands.slash_command(name='play', description='Playing music.')
     async def play(self, ctx, url: str):
+        global song_queue, song_names
         print_timestamp(ctx.author.name, 'Requested play command by: ')
-        if not ctx.author.voice:
-            await ctx.send('You are not in a voice channel!')
-            return
-
         await ctx.defer()
 
-        voice_client = ctx.voice_client
+        voice_client = await join_channel(ctx)
         if voice_client is None:
-            voice_client = await join_channel(ctx)
+            return
+
 
         await fetch_songs(ctx, url)
-
         if not voice_client.is_playing():
             while not song_queue:
-                await asyncio.sleep(0.5)
-            await stream_music(ctx, song_queue.pop(0))
-
+                await asyncio.sleep(0.5)    
+        await stream_music(ctx, song_queue.pop(0), self)
+    
     @commands.slash_command(name='skip', description='Skips the current track')
     async def skip(self, ctx):
         print_timestamp(ctx.author.name, 'Requested skip command by: ')
