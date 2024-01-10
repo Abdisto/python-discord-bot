@@ -195,50 +195,53 @@ class Music(commands.Cog):
         print_timestamp(ctx.author.name, f'Requested play command by: ')
         inputs_provided = sum([url is not None, search is not None, attachment is not None])
         if inputs_provided > 1:
-            await ctx.respond("Please provide only a URL, search terms, or an attachment, not multiple.", ephemeral=True)
+            await ctx.respond('Please provide only a URL, search terms, or an attachment, not multiple.', ephemeral=True)
             return
-        voice_client = await join_channel(ctx)
-        if voice_client is None:
-            return
+
+        if url or attachment or search != None:
+            voice_client = await join_channel(ctx)
+            if voice_client is None:
+                return
 
         if url:
             await fetch_songs(ctx, url)
             if not voice_client.is_playing() and song_queue:
                 current_song_playing = song_queue.pop(0)
                 await stream_music(ctx, current_song_playing, self)
-
         elif attachment:
-            file_path = f"./{attachment.filename}"
+            file_path = f'./{attachment.filename}'
             try:
                 mime_type = magic.from_buffer(await attachment.read())
                 if mime_type not in allowed_mime_types:
-                    await ctx.followup.send(f"Unsupported file type: {mime_type}")
+                    await ctx.followup.send(f'Unsupported file type: {mime_type}')
                     return
-
                 await attachment.save(file_path)
                 # Check if the file exists before attempting to play it
                 if not os.path.exists(file_path):
-                    print_timestamp(f"File not found: {file_path}")
+                    print_timestamp(f'File not found: {file_path}')
                     return
                 # Append the file path to the song_queue and a descriptive name to song_names
                 song_queue.append(file_path)
-                song_names.append(f"File: {attachment.filename}")
+                song_names.append(f'File: {attachment.filename}')
                 # Play the local file using the stream_music function if nothing is currently playing
                 if not voice_client.is_playing():
                     current_song_playing = song_queue.pop(0)
                     await stream_music(ctx, None, self, file=current_song_playing)
             except Exception as e:
-                await ctx.followup.send(f"An error occurred while saving the file: {e}")
-
+                await ctx.followup.send(f'An error occurred while saving the file: {e}')
         elif search:
             with yt_dlp.YoutubeDL(ydlp_opts) as ydlp:
-                info = ydlp.extract_info(f"ytsearch:{search}", download=False)
+                info = ydlp.extract_info(f'ytsearch:{search}', download=False)
                 url = info['entries'][0]['webpage_url']
                 song_queue.append(url)
                 song_names.append(info['entries'][0]['title'])
             if not voice_client.is_playing() and song_queue:
                 current_song_playing = song_queue.pop(0)
                 await stream_music(ctx, current_song_playing, self)
+        else:
+            await ctx.followup.send('Provide an input please.')
+            print_timestamp('User did not provide an input.')
+
 
     @commands.slash_command(name='skip', description='Skips the current track')
     async def skip(self, ctx):
