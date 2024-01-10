@@ -2,20 +2,26 @@
 
 import os
 import discord
+from discord import option
 from discord.ext import tasks, commands
 from discord.commands import Option
 import yt_dlp
 import asyncio
 import subprocess
+import datetime
 import json
 import random
+import magic
 from .errorHandler import print_timestamp
 
 apikey = os.getenv('API_KEY')
-first_play_ctx = None
+
+first_play_ctx = None # just in case of different channels 
+current_song_index = 0
+current_song_playing = None
 song_queue = []
 song_names = []
-song_infos = {}
+
 loop_mode = 0
 ydlp_opts = {
     'format': 'bestaudio/best',
@@ -31,6 +37,27 @@ ydlp_opts = {
     'max_download_rate': '50K',
 }
 
+magic = magic.Magic(mime=True)
+allowed_mime_types = ["audio/mpeg", "audio/x-ms-wma", "audio/vnd.wave", "video/mpeg", "video/mp4"]
+
+async def join_channel(ctx):
+    if ctx.voice_client is not None and ctx.voice_client.is_connected():
+        return ctx.voice_client
+    try: 
+        channel = ctx.author.voice.channel
+        if channel:
+            voice_channel = await channel.connect()
+            song_queue.clear() # redundant
+            song_names.clear() 
+            return voice_channel
+        else:
+            await ctx.followup.send('Something went wrong.')
+            print_timestamp('Something went wrong, when trying to join channel.', 'Error: ', 1)
+    except:
+        await ctx.followup.send('You are not in a voice channel.')
+        print_timestamp('Person requesting music playback is not in a voice channel.', 'User-Error: ')
+        return None
+
 def run_node_script(script_path, playlist_url):
     try:
         result = subprocess.run(['node', script_path, playlist_url], capture_output=True, text=True)
@@ -40,7 +67,7 @@ def run_node_script(script_path, playlist_url):
             print('Error:', result.stderr)
             return []
     except Exception as e:
-        print('Exception:', e)
+        print_timestamp(e, 'Exception:', 1)
         return []
 
 async def fetch_songs(ctx, url):
@@ -67,46 +94,31 @@ async def fetch_songs(ctx, url):
         print_timestamp(e, 'Exception: ', 1)
 
 # Function to stream music
-async def stream_music(ctx, url, self):
-    global song_queue, song_names
-    first_play_ctx = None
+async def stream_music(ctx, url, self, file=None):
+    global song_queue, song_names, first_play_ctx
+    voice_channel = await join_channel(ctx)
     if first_play_ctx is None:
         first_play_ctx = ctx
     try:
-        with yt_dlp.YoutubeDL(ydlp_opts) as ydlp:
-            print_timestamp('Getting Streamlink')
-            info = ydlp.extract_info(url, download=False)
-            # Store song info in cache for future use
-            song_infos[url] = info
+        if file:
+            voice_channel.play(discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=file), after=lambda e: after_playing(ctx, e, self, file))
+            await ctx.followup.send(f'Started Playing: {file}')
+            print_timestamp(file, 'Streaming audio from: ')
+        else:
+            with yt_dlp.YoutubeDL(ydlp_opts) as ydlp:
+                print_timestamp('Getting Streamlink')
+                info = ydlp.extract_info(url, download=False)
 
-        voice_channel = await join_channel(ctx)
-        print_timestamp(info['title'], 'Streaming audio from: ')
+            print_timestamp(info['title'], 'Streaming audio from: ')
 
-        options = '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 60'
-        voice_channel.play(discord.FFmpegPCMAudio(info['url'], before_options=options), after=lambda e: after_playing(ctx, e, self))
-        await ctx.followup.send(f'Started Playing: {url}')
+            options = '-vn -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
+            voice_channel.play(discord.FFmpegPCMAudio(info['url'], before_options=options), after=lambda e: after_playing(ctx, e, self))
+            await ctx.followup.send(f'Started Playing: {url}')
     except Exception as e:
         print_timestamp(e, 'An error occurred while streaming: ', 1)
 
-async def join_channel(ctx):
-    if ctx.voice_client is not None and ctx.voice_client.is_connected():
-        return ctx.voice_client
-    try: 
-        channel = ctx.author.voice.channel
-        if channel:
-            voice_channel = await channel.connect()
-            song_queue.clear()
-            song_names.clear()
-            return voice_channel
-        else:
-            await ctx.followup.send('Something went wrong.')
-            print_timestamp('Something went wrong, when trying to join channel.', 'Error: ', 1)
-    except:
-        await ctx.followup.send('You are not in a voice channel.')
-        print_timestamp('Person requesting music playback is not in a voice channel.', 'User-Error: ')
-        return None
-
-def after_playing(ctx, error, self):
+def after_playing(ctx, error, self, file=None):
+    global current_song_index, current_song_playing, song_queue
     if error:
         print_timestamp(error, 'An error occurred while playing: ', 1)
         loop = self.bot.loop
@@ -114,41 +126,120 @@ def after_playing(ctx, error, self):
                
     print_timestamp('Finished current track.')
     loop = self.bot.loop
-    if loop_mode == 1:
-        # Loop the current song
-        print_timestamp('Loop the current song', 'current mode: ')
-        loop.create_task(stream_music(ctx, song_queue[0]))
-    elif loop_mode == 2 and song_queue:
-        # Loop the whole queue
-        print_timestamp('Loop the whole queue', 'current mode: ')
-        loop.create_task(stream_music(ctx, song_queue.pop(0)))
-    elif song_queue:
-        # No loop, play the next song
-        print_timestamp('No loop', 'current mode: ')
-        loop.create_task(stream_music(ctx, song_queue.pop(0)))
 
+    if loop_mode == 1:
+        try:
+            print(song_queue)
+            # Loop the current song
+            print_timestamp('Loop the current song', 'Current mode: ')
+            loop.create_task(stream_music(ctx, current_song_playing, self))
+        except:
+            print_timestamp('Queue empty.')
+    elif loop_mode == 2 and song_queue:
+        try:
+            current_song_index += 1 % song_queue.len()
+            # Loop the whole queue
+            print_timestamp('Loop the whole queue', 'Current mode: ')
+            loop.create_task(stream_music(ctx, song_queue.pop(0), self))
+        except:
+            print_timestamp('Queue empty.')
+    elif loop_mode:
+        try:
+            current_song_index += 1
+            # No loop, play the next song
+            print_timestamp('No loop', 'Current mode: ')
+            loop.create_task(stream_music(ctx, song_queue.pop(0), self))
+            if file:
+                os.remove(file)
+                print_timestamp(f"Deleted file: {file}")
+        except:
+            print_timestamp('Queue empty.')
+
+def clear_queue(self):
+    global song_queue, song_names
+    try:
+        song_queue.clear()
+        song_names.clear()
+        print_timestamp('Leaving due to inactivity')
+    except:
+        print_timestamp('Queue either empty or having problems clearing queue')
 
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # Define the 'play' command
-    @commands.slash_command(name='play', description='Playing music.')
-    async def play(self, ctx, url: str):
-        global song_queue, song_names
-        print_timestamp(ctx.author.name, 'Requested play command by: ')
-        await ctx.defer()
+    def clear(self):
+        clear_queue(self)
 
+    # Define the 'play' command
+    @commands.slash_command(
+        name='play', 
+        description='Playing music.')
+    @discord.option(
+        name='url',
+        description='Play Music by url',
+        required=False)
+    @discord.option(
+        name='attachment',
+        description='Upload a file to play',
+        required=False,
+        type=discord.Attachment)
+    @discord.option(
+        name='search',
+        description='Search by song name',
+        required=False
+    )
+    async def play(self, ctx, url: str = None, attachment: discord.Attachment = None, search: str = None):
+        global current_song_playing, song_queue, song_names
+        await ctx.defer()
+        print_timestamp(ctx.author.name, f'Requested play command by: ')
+        inputs_provided = sum([url is not None, search is not None, attachment is not None])
+        if inputs_provided > 1:
+            await ctx.respond("Please provide only a URL, search terms, or an attachment, not multiple.", ephemeral=True)
+            return
         voice_client = await join_channel(ctx)
         if voice_client is None:
             return
 
-        await fetch_songs(ctx, url)
-        if not voice_client.is_playing():
-            while not song_queue:
-                await asyncio.sleep(0.5)    
-        await stream_music(ctx, song_queue.pop(0), self)
-    
+        if url:
+            await fetch_songs(ctx, url)
+            if not voice_client.is_playing() and song_queue:
+                current_song_playing = song_queue.pop(0)
+                await stream_music(ctx, current_song_playing, self)
+
+        elif attachment:
+            file_path = f"./{attachment.filename}"
+            try:
+                mime_type = magic.from_buffer(await attachment.read())
+                if mime_type not in allowed_mime_types:
+                    await ctx.followup.send(f"Unsupported file type: {mime_type}")
+                    return
+
+                await attachment.save(file_path)
+                # Check if the file exists before attempting to play it
+                if not os.path.exists(file_path):
+                    print_timestamp(f"File not found: {file_path}")
+                    return
+                # Append the file path to the song_queue and a descriptive name to song_names
+                song_queue.append(file_path)
+                song_names.append(f"File: {attachment.filename}")
+                # Play the local file using the stream_music function if nothing is currently playing
+                if not voice_client.is_playing():
+                    current_song_playing = song_queue.pop(0)
+                    await stream_music(ctx, None, self, file=current_song_playing)
+            except Exception as e:
+                await ctx.followup.send(f"An error occurred while saving the file: {e}")
+
+        elif search:
+            with yt_dlp.YoutubeDL(ydlp_opts) as ydlp:
+                info = ydlp.extract_info(f"ytsearch:{search}", download=False)
+                url = info['entries'][0]['webpage_url']
+                song_queue.append(url)
+                song_names.append(info['entries'][0]['title'])
+            if not voice_client.is_playing() and song_queue:
+                current_song_playing = song_queue.pop(0)
+                await stream_music(ctx, current_song_playing, self)
+
     @commands.slash_command(name='skip', description='Skips the current track')
     async def skip(self, ctx):
         print_timestamp(ctx.author.name, 'Requested skip command by: ')
@@ -162,7 +253,7 @@ class Music(commands.Cog):
             while voice_client.is_playing():
                 await asyncio.sleep(0.1)
             if song_queue:  # Check if there are songs in the queue
-                await stream_music(ctx, song_queue.pop(0))
+                await stream_music(ctx, song_queue.pop(0), self)
             else:
                 await ctx.followup.send('No more songs in the queue.')
         else:
@@ -190,6 +281,7 @@ class Music(commands.Cog):
         elif voice_client.is_connected():
             await voice_client.disconnect()
             await ctx.followup.send('Leaving the voice channel.')
+            clear_queue(self)
         else:
             await ctx.followup.send('The bot is not connected to a voice channel.')
 
@@ -227,8 +319,7 @@ class Music(commands.Cog):
         if voice_client is None:
             await ctx.followup.send('The bot is not connected to a voice channel.')
         elif voice_client.is_playing():
-            song_queue.clear()
-            song_names.clear()
+            clear_queue(self)
             voice_client.stop()
             await ctx.followup.send('Stopped the song.')
         else:
@@ -236,12 +327,64 @@ class Music(commands.Cog):
 
     @commands.slash_command(name='queue', description='Display the current song queue.')
     async def queue(self, ctx):
+        global song_queue, song_names
         await ctx.defer()
-        if not song_names:  # Use the song_names list to check if the queue is empty
+        if not song_names: # Use the song_names list to check if the queue is empty
             await ctx.followup.send('The song queue is currently empty.')
         else:
-            queue_text = '\n'.join(song_names)  # Use the song_names list to display the queue
-            await ctx.followup.send(f'Current song queue:\n{queue_text}')
+            queue_text = "\n".join(f"**{i+1}.** {name} {'  **- currently playing** ' if i == current_song_index else ''}" for i, name in enumerate(song_names))
+            embed = discord.Embed(
+                title="Current song queue",
+                description=queue_text,
+                color=discord.Color.blue()
+            )
+            await ctx.followup.send(embed=embed)
+
+    # @commands.slash_command(name='nowplaying', description='Display the currently playing song.')
+    # async def now_playing(self, ctx):
+    #     global song_queue, song_names
+    #     await ctx.defer()
+    #     if not song_queue and song_names:  # Check if the song queue is empty
+    #         await ctx.followup.send('No song is currently playing.')
+    #     else:
+    #         # Use yt_dlp to get information about the song
+    #         with yt_dlp.YoutubeDL(ydlp_opts) as ydlp:
+    #             info = ydlp.extract_info(song_queue[0], download=False)
+    #         voice_channel = ctx.author.voice.channel
+
+    #         # Get the voice client
+    #         voice_client = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+
+    #         # Calculate the current time elapsed
+    #         current_time = voice_client.source.duration if voice_client.source else 0
+
+    #         # Create an embed message
+    #         embed = discord.Embed(
+    #             title="Now Playing",
+    #             description=f"[{info['title']}]({info['webpage_url']})",
+    #             color=discord.Color.blue()
+    #         )
+
+    #         # Add fields to the embed message
+    #         embed.add_field(name="Duration", value=str(datetime.timedelta(seconds=info['duration'])))
+    #         embed.add_field(name="Current Time", value=str(datetime.timedelta(seconds=current_time)))
+    #         embed.set_thumbnail(url=info['thumbnail'])
+
+    #         # Send the embed message
+    #         await ctx.followup.send(embed=embed)
+
+    @commands.slash_command(name='delete', description='Delete a song from the queue.')
+    async def delete(self, ctx, index: int):
+        global song_queue, song_names, current_song_index
+        await ctx.defer()
+        if index > 0 and index <= len(song_queue):
+            if index == current_song_index + 1: # If the song to be deleted is the next song to be played
+                current_song_index -= 1 # Move the current song index back by one
+            removed_song = song_names.pop(index - 1) # Adjust for 0-indexing
+            removed_url = song_queue.pop(index - 1) # Adjust for 0-indexing
+            await ctx.followup.send(f'Removed {removed_song} from the queue.')
+        else:
+            await ctx.followup.send('Invalid index.')
 
     @commands.slash_command(
         name='loop',
@@ -287,14 +430,23 @@ class Music(commands.Cog):
         elif loop_mode == 2:
             return 'Whole queue'
 
-    @commands.slash_command(name='shuffle', description='Shuffling the queue.')
-    async def shuffle(self, ctx):
-        global song_queue, song_names
-        await ctx.defer()
-        combined = list(zip(song_queue, song_names))
-        random.shuffle(combined)
-        song_queue[:], song_names[:] = zip(*combined)
-        await ctx.followup.send('shuffled the playlist.')
+    # @commands.slash_command(name='shuffle', description='Shuffling the queue.')
+    # async def shuffle(self, ctx):
+    #     global song_queue, song_names, current_song_index
+    #     await ctx.defer()
+    #     if len(song_queue) > 1:  # Check if there are songs to shuffle
+    #         # Exclude the currently playing song and remove duplicates
+    #         unique_queue = list(set(song_queue[current_song_index + 1:]))
+    #         random.shuffle(unique_queue)
+            
+    #         # Update the song queue and names with the shuffled list
+    #         song_queue[current_song_index + 1:] = unique_queue
+    #         shuffled_names = [song_names[song_queue.index(song)] for song in unique_queue]
+    #         song_names[current_song_index + 1:] = shuffled_names
+            
+    #         await ctx.followup.send('Shuffled the playlist.')
+    #     else:
+    #         await ctx.followup.send('Not enough songs in the queue to shuffle.')
 
 def setup(bot):
    bot.add_cog(Music(bot))
