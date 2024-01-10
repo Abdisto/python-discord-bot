@@ -12,3 +12,7 @@ to add these u just need to add them inside the /etc/environment file, U can als
 sudo pip3.10 install inquirer
 sudo python3.10 setup-wizard.py
 ```
+
+compatibility:
+python3.10
+other versions will be tested soon
