@@ -23,7 +23,7 @@ async def check_bot_status():
         if not vc.is_playing() and not vc.is_paused():
             if not hasattr(vc, 'inactive_since'):
                 vc.inactive_since = t.time()
-            elif t.time() - vc.inactive_since >= 120: # 2 minutes
+            elif t.time() - vc.inactive_since >= 300: # 5 minutes
                 music_cog = bot.get_cog('Music')
                 if music_cog:
                     music_cog.clear()

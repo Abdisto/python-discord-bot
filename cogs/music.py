@@ -2,7 +2,7 @@
 
 import os
 import discord
-from discord import option
+from discord import option, PCMVolumeTransformer
 from discord.ext import tasks, commands
 from discord.commands import Option
 import yt_dlp
@@ -43,32 +43,21 @@ allowed_mime_types = ["audio/mpeg", "audio/x-ms-wma", "audio/vnd.wave", "video/m
 async def join_channel(ctx):
     if ctx.voice_client is not None and ctx.voice_client.is_connected():
         return ctx.voice_client
-    try: 
-        channel = ctx.author.voice.channel
-        if channel:
-            voice_channel = await channel.connect()
-            song_queue.clear() # redundant
-            song_names.clear() 
-            return voice_channel
-        else:
-            await ctx.followup.send('Something went wrong.')
-            print_timestamp('Something went wrong, when trying to join channel.', 'Error: ', 1)
-    except:
-        await ctx.followup.send('You are not in a voice channel.')
-        print_timestamp('Person requesting music playback is not in a voice channel.', 'User-Error: ')
-        return None
-
-def run_node_script(script_path, playlist_url):
-    try:
-        result = subprocess.run(['node', script_path, playlist_url], capture_output=True, text=True)
-        if result.returncode == 0:
-            return json.loads(result.stdout)
-        else:
-            print('Error:', result.stderr)
-            return []
-    except Exception as e:
-        print_timestamp(e, 'Exception:', 1)
-        return []
+    else:
+        try: 
+            channel = ctx.author.voice.channel
+            if channel:
+                voice_channel = await channel.connect()
+                song_queue.clear() # redundant
+                song_names.clear() 
+                return voice_channel
+            else:
+                await ctx.followup.send('Something went wrong.')
+                print_timestamp('Something went wrong, when trying to join channel.', 'Error: ', 1)
+        except:
+            await ctx.followup.send('You are not in a voice channel.')
+            print_timestamp('Person requesting music playback is not in a voice channel.', 'User-Error: ')
+            return None
 
 async def fetch_songs(ctx, url):
     print_timestamp('Fetching songs')
@@ -94,14 +83,16 @@ async def fetch_songs(ctx, url):
         print_timestamp(e, 'Exception: ', 1)
 
 # Function to stream music
-async def stream_music(ctx, url, self, file=None):
+async def stream_music(ctx, url, self, file=None, volume=0.1):
     global song_queue, song_names, first_play_ctx
     voice_channel = await join_channel(ctx)
     if first_play_ctx is None:
         first_play_ctx = ctx
     try:
         if file:
-            voice_channel.play(discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=file), after=lambda e: after_playing(ctx, e, self, file))
+            audio_source = discord.FFmpegPCMAudio(executable="/usr/bin/ffmpeg", source=file)
+            audio_source = PCMVolumeTransformer(audio_source, volume=volume)
+            voice_channel.play(audio_source, after=lambda e: after_playing(ctx, e, self, file))
             await ctx.followup.send(f'Started Playing: {file}')
             print_timestamp(file, 'Streaming audio from: ')
         else:
@@ -112,7 +103,9 @@ async def stream_music(ctx, url, self, file=None):
             print_timestamp(info['title'], 'Streaming audio from: ')
 
             options = '-vn -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
-            voice_channel.play(discord.FFmpegPCMAudio(info['url'], before_options=options), after=lambda e: after_playing(ctx, e, self))
+            audio_source = discord.FFmpegPCMAudio(info['url'], before_options=options)
+            audio_source = PCMVolumeTransformer(audio_source, volume=volume)
+            voice_channel.play(audio_source, after=lambda e: after_playing(ctx, e, self))
             await ctx.followup.send(f'Started Playing: {url}')
     except Exception as e:
         print_timestamp(e, 'An error occurred while streaming: ', 1)
@@ -123,14 +116,24 @@ def after_playing(ctx, error, self, file=None):
         print_timestamp(error, 'An error occurred while playing: ', 1)
         loop = self.bot.loop
         loop.create_task(ctx.send(f'An error occurred while playing: {error}'))
-               
+
     print_timestamp('Finished current track.')
     loop = self.bot.loop
 
-    if loop_mode == 1:
+    if loop_mode == 0:
+        try:
+            current_song_index += 1
+            # No loop, play the next song
+            print_timestamp('No loop', 'Current mode: ')
+            loop.create_task(stream_music(ctx, song_queue.pop(0), self))
+            if file:
+                os.remove(file)
+                print_timestamp(f"Deleted file: {file}")
+        except:
+            print_timestamp('Queue empty.')
+    elif loop_mode == 1:
         try:
             print(song_queue)
-            # Loop the current song
             print_timestamp('Loop the current song', 'Current mode: ')
             loop.create_task(stream_music(ctx, current_song_playing, self))
         except:
@@ -143,37 +146,27 @@ def after_playing(ctx, error, self, file=None):
             loop.create_task(stream_music(ctx, song_queue.pop(0), self))
         except:
             print_timestamp('Queue empty.')
-    elif loop_mode:
-        try:
-            current_song_index += 1
-            # No loop, play the next song
-            print_timestamp('No loop', 'Current mode: ')
-            loop.create_task(stream_music(ctx, song_queue.pop(0), self))
-            if file:
-                os.remove(file)
-                print_timestamp(f"Deleted file: {file}")
-        except:
-            print_timestamp('Queue empty.')
 
 def clear_queue(self):
     global song_queue, song_names
     try:
         song_queue.clear()
         song_names.clear()
-        print_timestamp('Leaving due to inactivity')
+        print_timestamp('Playlist cleared!')
     except:
-        print_timestamp('Queue either empty or having problems clearing queue')
+        print_timestamp('Queue either empty or having problems clearing queue!')
 
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     def clear(self):
+        print_timestamp('Leaving due to inactivity!')
         clear_queue(self)
 
     # Define the 'play' command
     @commands.slash_command(
-        name='play', 
+        name='play',
         description='Playing music.')
     @discord.option(
         name='url',
@@ -255,7 +248,7 @@ class Music(commands.Cog):
             await ctx.followup.send('Skipping current track.')
             while voice_client.is_playing():
                 await asyncio.sleep(0.1)
-            if song_queue:  # Check if there are songs in the queue
+            if song_queue:
                 await stream_music(ctx, song_queue.pop(0), self)
             else:
                 await ctx.followup.send('No more songs in the queue.')
@@ -332,7 +325,7 @@ class Music(commands.Cog):
     async def queue(self, ctx):
         global song_queue, song_names
         await ctx.defer()
-        if not song_names: # Use the song_names list to check if the queue is empty
+        if not song_names:
             await ctx.followup.send('The song queue is currently empty.')
         else:
             queue_text = "\n".join(f"**{i+1}.** {name} {'  **- currently playing** ' if i == current_song_index else ''}" for i, name in enumerate(song_names))
