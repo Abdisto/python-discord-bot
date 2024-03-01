@@ -46,11 +46,14 @@ def print_timestamp(text='', title='', mode=0, url=''):
     time = datetime.now().strftime('%H:%M:%S')
     if mode == 0: # plain text with possible title
         print(f'{TextColor.RESET}[{TextColor.RED}{date}{TextColor.RESET}| {TextColor.PURPLE}{time}{TextColor.RESET}] {TextColor.RESET}{title}{TextColor.YELLOW}{text}{TextColor.RESET}\n', end='')
+        process = subprocess.Popen('echo 0 > /sys/class/leds/working/brightness', stdout=subprocess.PIPE, shell=True)
     elif mode == 1: # error
         print(f'{TextColor.RESET}[{TextColor.RED}{date}{TextColor.RESET}| {TextColor.PURPLE}{time}{TextColor.RESET}] {TextColor.RED}{title}{TextColor.RESET}{text}\n', end='')
+        process = subprocess.Popen('echo 1 > /sys/class/leds/auxiliary/brightness', stdout=subprocess.PIPE, shell=True)
         t.sleep(2)
         log_error(str(text))
-    elif mode == 2: # hyperlink (cannot work inside of an ssh session it appears)
+        process = subprocess.Popen('echo 0 > /sys/class/leds/auxiliary/brightness', stdout=subprocess.PIPE, shell=True)
+    elif mode == 2: # hyperlink
         #hyperlink = f"\x1b]8;;{url}\x1b\\{text}\x1b]8;;\x1b\\"
         hyperlink = f"{text} - {url}"
         print(f'{TextColor.RESET}[{TextColor.RED}{date}{TextColor.RESET}| {TextColor.PURPLE}{time}{TextColor.RESET}] {TextColor.RESET}{title}{TextColor.YELLOW}{hyperlink}\n', end='')
