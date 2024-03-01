@@ -12,10 +12,22 @@ from discord.ext import tasks
 
 import asyncio
 
-from errorHandler import print_text, TextColor, Ori
+from errorHandler import print_text, TextColor, Ori, print_timestamp
 
 discord_token = os.getenv('DISCORD_TOKEN')
 bot = discord.Bot()
+
+def load_cogs(directory):
+    for foldername, subfolders, filenames in os.walk(directory):
+        for filename in filenames:
+            if filename.endswith('.py') and filename != 'errorHandler.py':
+                print_timestamp(filename, 'Trying to load in ')
+                extension = os.path.join(foldername, filename).replace('.py', '').replace('/', '.')
+                try:
+                    bot.load_extension(extension)
+                    print_timestamp(f'Successfully loaded extension: {extension}')
+                except Exception as e:
+                    print_timestamp(e, f'Failed to load extension {extension}. ', 1)
 
 @tasks.loop(minutes=1)
 async def check_bot_status():
@@ -47,5 +59,5 @@ async def on_ready():
     if not check_bot_status.is_running():
         check_bot_status.start()
 
-bot.load_extension('cogs.music')
+load_cogs('cogs')
 bot.run(discord_token)
