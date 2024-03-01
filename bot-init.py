@@ -47,6 +47,4 @@ async def on_ready():
         check_bot_status.start()
 
 bot.load_extension('cogs.music')
-bot.load_extension('cogs.wichteln')
-bot.load_extension('cogs.minecraft')
 bot.run(discord_token)
