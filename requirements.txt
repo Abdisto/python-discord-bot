@@ -1,0 +1,4 @@
+discord==2.3.2
+inquirer==3.2.4
+pomice==2.9.0
+py-cord==2.5.0

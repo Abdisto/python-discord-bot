@@ -1,0 +1,13 @@
+version: "3"
+services:
+    app:
+        build: .
+        container_name: bot
+        tty: true
+        networks:
+            - lavalink
+
+networks:
+    lavalink:
+        name: lavalink
+        external: true
