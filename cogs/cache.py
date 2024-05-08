@@ -24,8 +24,8 @@ class Cache():
         with open('cache.yaml', 'r') as file:
             data = yaml.safe_load(file)
 
-        if data is []:
-            return {}
+        if data is None:
+            return []
 
         sorted_titles = sorted(data.items(), key=lambda item: item[1]['weight'], reverse=True)
         
