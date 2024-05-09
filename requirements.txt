@@ -2,3 +2,7 @@ discord==2.3.2
 inquirer==3.2.4
 pomice==2.9.0
 py-cord==2.5.0
+PyYaml==6.0.1
+fuzzywuzzy==0.18.0
+python-Levenshtein==0.25.1
+rich==13.7.1
