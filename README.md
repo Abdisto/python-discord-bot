@@ -12,7 +12,7 @@ python3.10 -m pip install -r  requirements.txt
 ```
 sudo python3.10 setup-wizard.py
 ```
-If you encounter problems using the setup-wizard you could of course contact me :)
+> If you encounter problems using the setup-wizard you could of course contact me :)
 
 ```
 python3.10 bot_init.py
@@ -20,5 +20,6 @@ python3.10 bot_init.py
 > [!IMPORTANT]
 > lavalink is required and should be downloaded from the official GitHub repo
 > Don't forget to set the correct ports via the bash script
+
 compatibility:
 python3.10
