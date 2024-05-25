@@ -14,7 +14,7 @@ from pomice import Node, NodePool
 
 from errorHandler import print_text, TextColor, Ori, print_timestamp
 from setup_wizard import get_config
-from minecraft.minecraft import get_status, transfer_file
+from server.server import transfer_file
 
 bot = discord.Bot()
 first_connect = True
@@ -79,31 +79,11 @@ async def check_inactivity():
         inactivity_timer = 0
 
 @tasks.loop(minutes=1)
-async def check_minecraft_status():
-    global online_empty
-    status = get_status()
-    if status.online == False:
-        bot.mcstatus = 'offline'
-        print('offline')
-
-    elif status.online == True:
-        bot.mcstatus = status.players.online 
-        print(status.players.online)
-        if status.players.online > 0:
-            online_empty = 0
-        else:
-            online_empty += 1
-            if online_empty >= 60:
-                try:
-                    with open('/tmp/server_action', 'w') as file:
-                        file.write('stop')
-                    transfer_file()
-
-                except Exception as e:
-                    print(e)
-
-    else:
-        print('something went wrong')
+async def check_server_application_status():
+    # You either write your own handler on the game server or any kind of server application
+    # Or you make the server handle it and you only send the instructions with the bot. 
+    # Maybe reading out a file on the server side that gives you status infos on the server.
+    # For demonstration purposes you could see how /dev2 achieved it. (With an existing library)
 
 @bot.event
 async def on_ready() -> None:
@@ -118,8 +98,8 @@ async def on_ready() -> None:
     if not check_inactivity.is_running():
         check_inactivity.start()
 
-    if not check_minecraft_status.is_running():
-        check_minecraft_status.start()
+    if not check_server_application_status.is_running():
+        check_server_application_status.start()
 
 def main():
     load_config()

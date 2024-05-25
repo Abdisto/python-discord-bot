@@ -8,18 +8,8 @@ from errorHandler import print_timestamp
 import paramiko
 from scp import SCPClient
 
-from python_mcstatus import JavaStatusResponse, statusJava
-
-
 local_path = '/tmp/server_action'
 remote_path = 'server_path'
-
-def get_status():
-    host = 'server_ip'
-    port = <port>
-    query = True
-
-    return statusJava(host, port, query)
 
 def create_ssh_client():
     server = 'server_ip'
@@ -40,13 +30,13 @@ def transfer_file():
         scp.put(local_path, remote_path)
     ssh_client.close()
 
-class Minecraft(commands.Cog):
+class Server(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.slash_command(
         name='server',
-        description='Controlling the minecraft server',
+        description='Controlling any server',
         options=[
             Option(
                 name='action',
@@ -96,4 +86,4 @@ class Minecraft(commands.Cog):
             await ctx.respond('An unexpected error occurred. Please try again later.', delete_after=7,)
 
 def setup(bot):
-    bot.add_cog(Minecraft(bot))
+    bot.add_cog(Server(bot))
