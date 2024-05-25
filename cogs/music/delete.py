@@ -23,10 +23,11 @@ class Delete(commands.Cog):
         
         try:
             track = queue[index-1]
-            print_timestamp(track, f'Track deleted from the queue: ')
             if not track == []:
                 player.queue.remove(track)
+                print_timestamp(track, f'Track deleted from the queue: ')
                 await ctx.respond(f'The Song `{track}` has been removed from the queue.', delete_after=7,)
+                await player.queue_update()
             else:
                 await ctx.respond(f'Index `{index}` is out of range.', delete_after=7,)
         except IndexError:
