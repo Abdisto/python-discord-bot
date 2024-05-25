@@ -16,6 +16,7 @@ cd python-discord-bot
 python3.10 -m pip install -r  requirements.txt
 ```
 
+## Usage
 > We need sudo trust me bro
 ```
 sudo python3.10 setup-wizard.py
