@@ -8,8 +8,6 @@ from pomice import LoopMode
 from ..errorHandler import print_timestamp
 from .player import Player
 
-loop_mode = 0
-
 class Loop(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
