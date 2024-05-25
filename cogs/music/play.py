@@ -64,6 +64,8 @@ class Play(commands.Cog):
     async def play(self, ctx, query: str = None) -> None: # , attachment: discord.Attachment = None
         # if attachment:
         #     return await ctx.respond('Sorry not implemented yet. ;c')
+        if query is None:
+            await ctx.respond('Please use the query handle.')
         await ctx.defer()
         print_timestamp(f'{ctx.author.name} - {query}', f'Requested play command by: ')
         # add a check to see if the bot and node are already connected
@@ -95,13 +97,13 @@ class Play(commands.Cog):
                     player.queue.put(track)
                     cache.data_parser(track.title, track.identifier)
                     i += 1
-                await player.queue_update(player)
+                await player.queue_update()
                 await msg.delete()
             else:
                 track = results[0]
                 await ctx.respond(f'Added `{track}` to the queue.', delete_after=14,)
                 player.queue.put(track)
-                await player.queue_update(player)
+                await player.queue_update()
                 cache.data_parser(track.title, track.identifier)
 
             if not player.is_playing:
@@ -113,17 +115,17 @@ class Play(commands.Cog):
     @commands.Cog.listener()
     async def on_pomice_track_end(self, player: Player, track, _):
         await player.do_next(bot=self.bot)
-        await player.queue_update(player)
+        await player.queue_update()
 
     @commands.Cog.listener()
     async def on_pomice_track_stuck(self, player: Player, track, _):
         await player.do_next(bot=self.bot)
-        await player.queue_update(player)
+        await player.queue_update()
 
     @commands.Cog.listener()
     async def on_pomice_track_exception(self, player: Player, track, _):
         await player.do_next(bot=self.bot)
-        await player.queue_update(player)
+        await player.queue_update()
 
     @tasks.loop(seconds=10)
     async def cache_reload_task(self):
