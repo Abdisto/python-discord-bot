@@ -1,16 +1,21 @@
 # python-discord-bot
-A discord bot written in python with discord.py and pycord for more functionality.
-Javascript file for fetching playlist URL's and .sh script to autostart the bot systemd.
+A discord bot written in python with pycord for more functionality.
+I am using pomice for the music support and created a bash script 
+to set the parameters and automate the bot's autostart with systemd.
 
-We are using the 'os' library to parse the DISCORD_TOKEN and API_KEY into and from the linux environment 
-to add these u just need to add them inside the /etc/environment file, U can also use the setup-wizard:
-
-| we need to use sudo to install inquirer globally since we will use sudo
-| we need sudo for the permissions 
+| We need sudo for the permissions trust me bro 
 
 ```
-sudo pip3.10 install inquirer
+python3.10 -m pip install -r  requirements.txt
+```
+
+```
 sudo python3.10 setup-wizard.py
+```
+If you encounter problems using the setup-wizard you could of course contact me :)
+
+```
+python3.10 bot_init.py
 ```
 
 compatibility:
