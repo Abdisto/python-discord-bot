@@ -98,9 +98,6 @@ class Player(pomice.Player):
             current_track: pomice.Track = self.current
             q = self.queue.get_queue()
 
-            print(f"Current Track: {current_track.title}")
-            print(f"Queue: {q}")
-
             formatted_current_track = f'[**{current_track.title}**]({current_track.uri}) [{convert(round(self.get_current_playback_position()))} / {convert(current_track.length // 1000)}]'
             loop_mode = 'Disabled' if self.queue.loop_mode is None else self.queue.loop_mode
 
@@ -110,15 +107,11 @@ class Player(pomice.Player):
                 if self.queue.loop_mode.name == 'QUEUE':
                     current_track_index = next((i for i, track in enumerate(q) if track == current_track), -1)
                     
-                    print(f"Current Track Index: {current_track_index}")
-                    
                     if current_track_index!= -1:
                         before_current = q[:current_track_index]
                         after_current = q[current_track_index:]
 
                         rearranged_queue = after_current + before_current
-
-                        print(f"Rearranged Queue: {rearranged_queue}")
 
             if self.queue.loop_mode is not None:
                 loop_mode_check = self.queue.loop_mode.name
@@ -139,7 +132,7 @@ class Player(pomice.Player):
                 try:
                     formatted_queue += (f'{i + loop_mode_adjustment}. [**{track.title}**]({track.uri}) [{convert(track.length // 1000)}]\n')
                 except Exception as e:
-                    print(f"Error converting length for song {song.title}: {e}")
+                    print_timestamp(e, f'Error converting length for song {song.title}: ', 1)
 
             embed = discord.Embed(
                 title=f'Queue',
