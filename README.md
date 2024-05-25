@@ -21,7 +21,7 @@ python3.10 -m pip install -r requirements.txt
 ## Using the setup-wizard
 > We need sudo trust me bro
 ```
-sudo python3.10 setup-wizard.py
+sudo python3.10 setup_wizard.py
 ```
 > If you encounter problems using the setup-wizard you could of course contact me :)
 
