@@ -5,6 +5,20 @@ A discord bot written in python with pycord for more functionality.
 I am using pomice for the music support and created a bash script 
 to set the parameters and automate the bot's autostart with systems.
 
+This branch also adds the command /server in which someone can start/restart/stop 
+a minecraft server. The state of the server will be displayed on the bot account
+at all times.
+
+How does it work?
+We write to a local file '/tmp/server_action' that we will then send to a server
+with scp. In this file the state of the server is defined. 
+Server-side handling (read file -> do things) files are not public yet.
+
+Can I use it for different kinds of servers?
+Yes, since this should be server-side handled. 
+One Problem: when doing so, you should use dev3, because we target 
+minecraft servers with the server status in the bot profile 
+
 ## Installing
 ``` 
 git clone -b dev2 https://github.com/BlacklightYT/python-discord-bot/
