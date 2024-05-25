@@ -5,13 +5,18 @@ A discord bot written in python with pycord for more functionality.
 I am using pomice for the music support and created a bash script 
 to set the parameters and automate the bot's autostart with systems.
 
-## Installing the requirements
+## Installing
+``` 
+git clone https://github.com/BlacklightYT/python-discord-bot/
+```
+```
+cd python-discord-bot
+```
 ```
 python3.10 -m pip install -r  requirements.txt
 ```
+
 > We need sudo trust me bro
-
-
 ```
 sudo python3.10 setup-wizard.py
 ```
