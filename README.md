@@ -36,3 +36,5 @@ python3.10 bot_init.py
 > https://github.com/lavalink-devs/Lavalink
 > 
 > Don't forget to set the correct ports via the bash script
+>
+> In cogs/minecraft/minecraft.py u have to set the variables
