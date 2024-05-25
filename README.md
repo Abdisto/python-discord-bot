@@ -20,7 +20,7 @@ One Problem: when doing so, you should use dev3, because we target
 minecraft servers with the server status in the bot profile 
 
 > [!IMPORTANT]
-> In cogs/minecraft/minecraft.py u have to set the variables
+> In cogs/server/server.py u have to set the variables
 
 ## Installing
 ``` 
