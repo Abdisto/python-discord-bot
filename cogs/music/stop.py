@@ -29,7 +29,7 @@ class Stop(commands.Cog):
         player.queue.clear()
         await self.bot.voice_clients[0].stop()
         await ctx.respond('Queue was deleted.', delete_after=3,)
-        await self.bot.change_presence(activity=None)
+        await bot.change_presence(activity=None)
 
 def setup(bot):
     bot.add_cog(Stop(bot))

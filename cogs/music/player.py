@@ -28,10 +28,7 @@ class Player(pomice.Player):
         try:
             track: pomice.Track = self.queue.get()
         except pomice.QueueEmpty:
-            await bot.change_presence(activity=discord.Activity(
-                type=discord.ActivityType.playing,
-                name=f'Server-status: {self.bot.mcstatus}')
-            )
+            await bot.change_presence(activity=None)
             if self.controller:
                 with suppress(discord.HTTPException):
                     await self.controller.delete()
@@ -60,7 +57,7 @@ class Player(pomice.Player):
 
         await bot.change_presence(activity=discord.Activity(
             type=discord.ActivityType.playing,
-            name=f'{track.title}                                          Server-status: {self.bot.mcstatus}')
+            name=f'{track.title}')
         )
 
         # await bot.change_presence(activity=discord.Streaming(

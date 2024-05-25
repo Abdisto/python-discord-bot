@@ -73,10 +73,7 @@ async def check_inactivity():
             inactivity_timer += 10
             if inactivity_timer >= 300:
                 await voice_client.disconnect()
-                await bot.change_presence(activity=discord.Activity(
-                    type=discord.ActivityType.playing,
-                    name=f'Server-status: {self.bot.mcstatus}')
-                )
+                await bot.change_presence(activity=None)
                 print_timestamp('Disconnected due to inactivity.')
     else:
         inactivity_timer = 0

@@ -24,7 +24,7 @@ class Leave(commands.Cog):
 
         await player.destroy()
         await ctx.respond('Bot has left the channel.', delete_after=7,)
-        await self.bot.change_presence(activity=None)
+        await bot.change_presence(activity=None)
 
 def setup(bot):
     bot.add_cog(Leave(bot))
