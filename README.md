@@ -17,14 +17,14 @@ python3.10 -m pip install -r  requirements.txt
 ```
 > Installing the requirements could take longer when using a low end device [Was the case on my old tv box with linux]
 
-## Usage
+## Using the setup-wizard
 > We need sudo trust me bro
 ```
 sudo python3.10 setup-wizard.py
 ```
 > If you encounter problems using the setup-wizard you could of course contact me :)
 
-
+## Usage
 ```
 python3.10 bot_init.py
 ```
