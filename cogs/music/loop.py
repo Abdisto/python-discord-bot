@@ -38,25 +38,24 @@ class Loop(commands.Cog):
         if not (player := ctx.voice_client):
             await ctx.respond('Queue is empty', delete_after=5,)
         else:
-            global loop_mode
             player: Player = ctx.voice_client
 
             print_timestamp(mode, 'Provided mode: ')
 
             if mode.lower() == 'disable':
-                loop_mode = 0
                 player.queue.disable_loop()
                 await ctx.respond('Looping is now `disabled`.', delete_after=5,)
+                await player.queue_update()
             elif mode.lower() == 'track':
-                loop_mode = 1
                 player.queue.set_loop_mode(mode=LoopMode.TRACK)
                 await ctx.respond('Now looping the `current song`.', delete_after=7,)
-            elif mode.lower() == 'queue':                                                    # add a check whether the queue is smaller than as 2
-                loop_mode = 2
+                await player.queue_update()
+            elif mode.lower() == 'queue':                                                    # add a check whether the queue is smaller than 2?
                 player.queue.set_loop_mode(mode=LoopMode.QUEUE)
                 await ctx.respond('Now looping the `whole queue`.', delete_after=7,)
+                await player.queue_update()
             elif mode.lower() == '?':
-                await ctx.respond(f'Current mode: `{player.queue.loop_mode}`', delete_after=7,)
+                await ctx.respond(f'Current mode: `{"Disabled" if player.queue.loop_mode is None else player.queue.loop_mode}`', delete_after=7,)
             else:
                 await ctx.respond('Invalid loop mode...', delete_after=5,)
 

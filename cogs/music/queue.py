@@ -28,14 +28,18 @@ class Queue(commands.Cog):
         q = player.queue.get_queue()
 
         if q == [] and not self.bot.voice_clients[0].is_playing:
-            return await self.queue_context.followup.send(                
+            return await ctx.respond(                
                 'Bot is not playing anything and the queue is empty.',
                 delete_after=7,
             )
 
-        player: Player = ctx.voice_client
-        await player.set_queue_context(q_ctx=ctx)
-        await player.queue_update(player)
+        try:
+            player: Player = ctx.voice_client
+            await player.set_queue_context(q_ctx=ctx)
+            await player.queue_update()
+
+        except Exception as e:
+            print_timestamp(e, f'Error at queue command: ', 1)
 
     def convert(t):
         return str(datetime.timedelta(seconds=t))

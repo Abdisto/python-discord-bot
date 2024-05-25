@@ -14,12 +14,14 @@ from pomice import Node, NodePool
 
 from errorHandler import print_text, TextColor, Ori, print_timestamp
 from setup_wizard import get_config
+from minecraft.minecraft import get_status, transfer_file
 
 bot = discord.Bot()
 first_connect = True
 node = None
 node_symbol = print_text('\U0000E0A0' , TextColor.CYAN)
 inactivity_timer = 0
+online_empty = 0
 
 def load_cogs():
     for foldername, subfolders, filenames in os.walk('cogs'):
@@ -71,10 +73,40 @@ async def check_inactivity():
             inactivity_timer += 10
             if inactivity_timer >= 300:
                 await voice_client.disconnect()
-                await bot.change_presence(activity=None)
+                await bot.change_presence(activity=discord.Activity(
+                    type=discord.ActivityType.playing,
+                    name=f'Server-status: {self.bot.mcstatus}')
+                )
                 print_timestamp('Disconnected due to inactivity.')
     else:
         inactivity_timer = 0
+
+@tasks.loop(minutes=1)
+async def check_minecraft_status():
+    global online_empty
+    status = get_status()
+    if status.online == False:
+        bot.mcstatus = 'offline'
+        print('offline')
+
+    elif status.online == True:
+        bot.mcstatus = status.players.online 
+        print(status.players.online)
+        if status.players.online > 0:
+            online_empty = 0
+        else:
+            online_empty += 1
+            if online_empty >= 60:
+                try:
+                    with open('/tmp/server_action', 'w') as file:
+                        file.write('stop')
+                    transfer_file()
+
+                except Exception as e:
+                    print(e)
+
+    else:
+        print('something went wrong')
 
 @bot.event
 async def on_ready() -> None:
@@ -88,6 +120,9 @@ async def on_ready() -> None:
 
     if not check_inactivity.is_running():
         check_inactivity.start()
+
+    if not check_minecraft_status.is_running():
+        check_minecraft_status.start()
 
 def main():
     load_config()

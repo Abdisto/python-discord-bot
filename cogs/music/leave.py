@@ -23,7 +23,7 @@ class Leave(commands.Cog):
         player: Player = ctx.voice_client
 
         await player.destroy()
-        await ctx.respond('Bot has left the channel.')
+        await ctx.respond('Bot has left the channel.', delete_after=7,)
         await self.bot.change_presence(activity=None)
 
 def setup(bot):
