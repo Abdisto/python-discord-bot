@@ -19,5 +19,5 @@ sudo python3.10 setup-wizard.py
 python3.10 bot_init.py
 ```
 > [!IMPORTANT]
-> lavalink is required and should be downloaded from the official GitHub repo
+> lavalink is required and should be downloaded from the official GitHub repo. https://github.com/lavalink-devs/Lavalink
 > Don't forget to set the correct ports via the bash script
