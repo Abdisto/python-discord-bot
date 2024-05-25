@@ -19,6 +19,9 @@ Yes, since this should be server-side handled.
 One Problem: when doing so, you should use dev3, because we target 
 minecraft servers with the server status in the bot profile 
 
+> [!IMPORTANT]
+> In cogs/minecraft/minecraft.py u have to set the variables
+
 ## Installing
 ``` 
 git clone -b dev2 https://github.com/BlacklightYT/python-discord-bot/
@@ -50,5 +53,3 @@ python3.10 bot_init.py
 > https://github.com/lavalink-devs/Lavalink
 > 
 > Don't forget to set the correct ports via the bash script
->
-> In cogs/minecraft/minecraft.py u have to set the variables
