@@ -33,6 +33,7 @@ class Shuffle(commands.Cog):
 
         await ctx.respond('Shuffling the queue...', delete_after=7,)
         player.queue.shuffle()
+        player.queue_update()
 
 def setup(bot):
     bot.add_cog(Shuffle(bot))
