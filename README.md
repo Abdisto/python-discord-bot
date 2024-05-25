@@ -7,7 +7,7 @@ to set the parameters and automate the bot's autostart with systems.
 
 ## Installing
 ``` 
-git clone https://github.com/BlacklightYT/python-discord-bot/
+git clone -b dev2 https://github.com/BlacklightYT/python-discord-bot/
 ```
 ```
 cd python-discord-bot
