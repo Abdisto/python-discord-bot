@@ -1,5 +1,6 @@
 # python-discord-bot
 [![MIT](https://img.shields.io/github/license/BlacklightYT/python-discord-bot?color=2f2f2f)](https://github.com/BlacklightYT/python-discord-bot/blob/main/LICENSE) 
+
 A discord bot written in python with pycord for more functionality.
 I am using pomice for the music support and created a bash script 
 to set the parameters and automate the bot's autostart with systemd.
