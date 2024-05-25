@@ -13,7 +13,7 @@ git clone https://github.com/BlacklightYT/python-discord-bot/
 cd python-discord-bot
 ```
 ```
-python3.10 -m pip install -r  requirements.txt
+python3.10 -m pip install -r requirements.txt
 ```
 > Could take longer on low end devices
 > [Was the case on my old tv box with linux]
