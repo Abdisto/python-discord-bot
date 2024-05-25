@@ -5,6 +5,10 @@ A discord bot written in python with pycord for more functionality.
 I am using pomice for the music support and created a bash script 
 to set the parameters and automate the bot's autostart with systems.
 
+Not completely ready yet:
+For Minecraft server start/restart/stop capabilities use branch: dev2
+For any server start/restart/stop capabilities use branch: dev3
+
 ## Installing
 ``` 
 git clone https://github.com/BlacklightYT/python-discord-bot/
