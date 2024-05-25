@@ -1,5 +1,5 @@
 # python-discord-bot
-[![MIT](https://img.shields.io/github/license/BlacklightYT/python-discord-bot?color=2f2f2f)](https://github.com/BlacklightYT/python-discord-bot/blob/main/LICENSE) ![](https://img.shields.io/pypi/pyversions/python-discord-bot?color=2f2f2f)
+[![MIT](https://img.shields.io/github/license/BlacklightYT/python-discord-bot?color=2f2f2f)](https://github.com/BlacklightYT/python-discord-bot/blob/main/LICENSE) ![3.10](https://img.shields.io/pypi/pyversions/python-discord-bot?color=2f2f2f)
 
 A discord bot written in python with pycord for more functionality.
 I am using pomice for the music support and created a bash script 
