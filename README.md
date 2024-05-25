@@ -15,6 +15,7 @@ cd python-discord-bot
 ```
 python3.10 -m pip install -r  requirements.txt
 ```
+> Installing the requirements could take longer when using a low end device [Was the case on my old tv box with linux]
 
 ## Usage
 > We need sudo trust me bro
