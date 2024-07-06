@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.10
-
 import os
 import sys
 sys.path.append(sys.path[0]+'/cogs')
