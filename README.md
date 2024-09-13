@@ -1,3 +1,7 @@
+# Fix for current issues/refactoring may be pushed in the next couple of months. Just finishing my exams first.
+
+# Most problems are already fixed but pushing them into the right branches may take a while. 
+
 # python-discord-bot
 [![MIT](https://img.shields.io/github/license/BlacklightYT/python-discord-bot?color=a3425d)](https://github.com/BlacklightYT/python-discord-bot/blob/main/LICENSE) ![Static Badge](https://img.shields.io/badge/python-3.10-brightgreen?style=flat&logo=python)
 
