@@ -219,9 +219,10 @@ class Minecraft(Server):
                     motd = str(motd)
                 motd = re.sub(r'§.', '', motd)
 
-            except Exception:
+            except Exception:  # noqa: S110
                 # logger.exception('Failed to parse MOTD')
-                print()
+                # print()
+                pass
 
             try:
                 picture: str | None = self.status.raw.get('favicon')
@@ -231,9 +232,10 @@ class Minecraft(Server):
                     with open(file = output_path, mode = 'wb') as file:
                         file.write(image_data)
                     logger.info(format(f"Image saved as {output_path}"))
-            except Exception:
+            except Exception: # noqa: S110
                 # logger.exception('')
-                print()
+                # print()
+                pass
 
         embed: Embed = discord.Embed(
             title=f'{self.ip}',
@@ -417,9 +419,10 @@ class ServerClass(commands.Cog):
             server.add_server(ip, port, user, key_file, identifier, server_type)
             server.save_obj()
             await ctx.respond('Server created successfully.', delete_after=5)
-        except Exception:
+        except Exception: # noqa: S110
             # self.bot.logger.exception('')
-            print()
+            # print()
+            pass
 
 
     @server.command(
