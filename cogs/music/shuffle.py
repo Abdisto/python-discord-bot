@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from discord.commands import Option
 
-from ..errorHandler import print_timestamp
 from .player import Player
 
 class Shuffle(commands.Cog):
@@ -11,8 +10,6 @@ class Shuffle(commands.Cog):
 
     @commands.slash_command(name='shuffle', description='Shuffles the queue.')
     async def shuffle(self, ctx) -> None:
-        await ctx.defer()
-        print_timestamp(ctx.author.name, f'Requested shuffle command by: ')
         if not (player := ctx.voice_client):
             return await ctx.respond(
                 'You must have the bot in a channel in order to use this command',
@@ -33,7 +30,7 @@ class Shuffle(commands.Cog):
 
         await ctx.respond('Shuffling the queue...', delete_after=7,)
         player.queue.shuffle()
-        player.queue_update()
+        player.queue_update(qu_ctx=None)
 
 def setup(bot):
     bot.add_cog(Shuffle(bot))

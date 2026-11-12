@@ -6,7 +6,6 @@ from discord.ext import commands
 
 import pomice
 
-from ..errorHandler import print_timestamp
 from .player import Player
 
 class Queue(commands.Cog):
@@ -17,8 +16,6 @@ class Queue(commands.Cog):
 
     @commands.slash_command(name='queue', description='Returns the queue.')
     async def queue(self, ctx):
-        await ctx.defer()
-        print_timestamp(ctx.author.name, f'Requested queue command by: ')
         if not (player := ctx.voice_client):
             return await ctx.respond(
                 'You must have the bot in a channel in order to use this command',
@@ -35,14 +32,11 @@ class Queue(commands.Cog):
 
         try:
             player: Player = ctx.voice_client
-            await player.set_queue_context(q_ctx=ctx)
-            await player.queue_update()
+            await player.queue_update(qu_ctx=ctx)
+            await ctx.respond('Queue updated ...', delete_after=5) # mach das schöner :c
 
-        except Exception as e:
-            print_timestamp(e, f'Error at queue command: ', 1)
-
-    def convert(t):
-        return str(datetime.timedelta(seconds=t))
+        except Exception:
+            self.bot.logger.exception('')
 
 def setup(bot):
     bot.add_cog(Queue(bot))

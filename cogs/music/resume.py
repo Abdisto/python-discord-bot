@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from discord.commands import Option
 
-from ..errorHandler import print_timestamp
 from .player import Player
 
 class Resume(commands.Cog):
@@ -11,8 +10,6 @@ class Resume(commands.Cog):
 
     @commands.slash_command(name='resume', description='Resuming the paused track.')
     async def resume(self, ctx) -> None:
-        await ctx.defer()
-        print_timestamp(ctx.author.name, f'Requested resume command by: ')
         if not (player := ctx.voice_client):
             return await ctx.respond(
                 'You must have the bot in a channel in order to use this command',

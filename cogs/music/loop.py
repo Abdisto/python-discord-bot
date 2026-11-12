@@ -5,7 +5,6 @@ from discord.commands import Option
 import pomice
 from pomice import LoopMode
 
-from ..errorHandler import print_timestamp
 from .player import Player
 
 class Loop(commands.Cog):
@@ -31,27 +30,25 @@ class Loop(commands.Cog):
         ]
     )
     async def loop(self, ctx, mode: str) -> None:
-        print_timestamp(ctx.author.name, 'Requested loop command by: ')
-        await ctx.defer()
         if not (player := ctx.voice_client):
             await ctx.respond('Queue is empty', delete_after=5,)
         else:
             player: Player = ctx.voice_client
 
-            print_timestamp(mode, 'Provided mode: ')
+            self.bot.logger.info(self.bot.format(mode, 'Provided mode: '))
 
             if mode.lower() == 'disable':
                 player.queue.disable_loop()
                 await ctx.respond('Looping is now `disabled`.', delete_after=5,)
-                await player.queue_update()
+                await player.queue_update(qu_ctx=None)
             elif mode.lower() == 'track':
                 player.queue.set_loop_mode(mode=LoopMode.TRACK)
                 await ctx.respond('Now looping the `current song`.', delete_after=7,)
-                await player.queue_update()
+                await player.queue_update(qu_ctx=None)
             elif mode.lower() == 'queue':                                                    # add a check whether the queue is smaller than 2?
                 player.queue.set_loop_mode(mode=LoopMode.QUEUE)
                 await ctx.respond('Now looping the `whole queue`.', delete_after=7,)
-                await player.queue_update()
+                await player.queue_update(qu_ctx=None)
             elif mode.lower() == '?':
                 await ctx.respond(f'Current mode: `{"Disabled" if player.queue.loop_mode is None else player.queue.loop_mode}`', delete_after=7,)
             else:

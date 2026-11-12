@@ -3,7 +3,6 @@ from discord.ext import commands
 
 import pomice
 
-from ..errorHandler import print_timestamp
 from .player import Player
 
 class Leave(commands.Cog):
@@ -12,8 +11,6 @@ class Leave(commands.Cog):
 
     @commands.slash_command(name='leave', description='Leaving the current channel.')
     async def leave(self, ctx):
-        await ctx.defer()
-        print_timestamp(ctx.author.name, f'Requested leave command by: ')
         if not (player := ctx.voice_client):
             return await ctx.respond(
                 'You must have the bot in a channel in order to use this command',
@@ -22,7 +19,7 @@ class Leave(commands.Cog):
 
         player: Player = ctx.voice_client
 
-        await player.destroy()
+        await player.disconnect()
         await ctx.respond('Bot has left the channel.', delete_after=7,)
         await self.bot.change_presence(activity=None)
 

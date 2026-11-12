@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from discord.commands import Option
 
-from ..errorHandler import print_timestamp
 from .player import Player
 
 class Skip(commands.Cog):
@@ -10,9 +9,7 @@ class Skip(commands.Cog):
         self.bot = bot
 
     @commands.slash_command(name='skip', description='Skipping the currently playing song.')
-    async def pause(self, ctx) -> None:
-        await ctx.defer()
-        print_timestamp(ctx.author.name, f'Requested skip command by: ')
+    async def skip(self, ctx) -> None:
         if not (player := ctx.voice_client):
             return await ctx.respond(
                 'You must have the bot in a channel in order to use this command',
@@ -26,7 +23,7 @@ class Skip(commands.Cog):
             return
 
         await ctx.respond('Skipping the track...', delete_after=7,)
-        await player.stop()
+        await player.stop()        
 
 def setup(bot):
     bot.add_cog(Skip(bot))
