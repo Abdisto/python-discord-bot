@@ -10,13 +10,16 @@ class Join(commands.Cog):
     @commands.slash_command(name='join', description='Joining the current channel.')
     async def join(self, ctx) -> None:
         try:
-            await Play.join_channel(self, ctx)
+            result = await Play.join_channel(self, ctx)
+            if result is None:
+                return  # join_channel already responded (not in a voice channel)
         except Exception as e:
-            self.bot.logger.info(self.bot.format(e, 'Error occurred at "join.py": ', 1))
+            self.bot.logger.info(self.bot.format(str(e), 'Error occurred at "join.py": ', 1))
             await ctx.respond(
                 'You must be in a voice channel in order for the bot to join.',
                 delete_after=7,
             )
+            return
 
 def setup(bot):
     bot.add_cog(Join(bot))

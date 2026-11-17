@@ -4,6 +4,7 @@ import os
 import textwrap
 from asyncio.locks import Lock
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, LiteralString
 
 import asyncpg
@@ -11,6 +12,7 @@ import discord
 from asyncpg.pool import Pool
 from rich.logging import RichHandler
 from rich.panel import Panel
+from watchfiles import awatch, Change
 
 from cache import Cache
 from cogs.music.player import Player
@@ -44,16 +46,21 @@ class BotClass(discord.Bot):
         self.public_ip: str | None = None
         self.local_songs_path: str | None = None
 
+        self.song_watcher_task: asyncio.Task | None = None
+
         logging.getLogger(name = 'discord.gateway').setLevel(logging.CRITICAL)
         logging.getLogger(name = 'discord.client').setLevel(logging.CRITICAL)
 
     async def initialize(self):
+        await self._ensure_library_dir()
         self.db = await asyncpg.create_pool(
             user="discordBot",
             database="discordQuery",
+            host=os.getenv("DB_HOST", "localhost"),
+            port=int(os.getenv("DB_PORT", "5432")),
             min_size=1,
             max_size=10,
-            command_timeout=1.0,
+            command_timeout=10.0,
         )
         self.logger.info(msg = "PostgreSQL Database pool created")
         async with self.db.acquire() as conn:
@@ -71,6 +78,115 @@ class BotClass(discord.Bot):
         self.logger.info(msg = "Cache initialized")
         # inspect(self.cache)
 
+    async def _ensure_library_dir(self) -> None:
+        """Make sure the local song library (SONG_PATH) exists before the first sync."""
+        if self.local_songs_path:
+            os.makedirs(self.local_songs_path, exist_ok=True)
+
+    def _library_files(self) -> list[Path]:
+        """All audio files in the (flat) library, newest first."""
+        path = Path(self.local_songs_path) if self.local_songs_path else None
+        if not path or not path.is_dir():
+            return []
+        files = [
+            entry for entry in path.iterdir()
+            if entry.is_file() and entry.suffix.lower() in Cache.AUDIO_EXTS
+        ]
+        files.sort(key=lambda entry: entry.stat().st_mtime, reverse=True)
+        return files
+
+    @staticmethod
+    def _track_title_for(file_path: Path) -> str:
+        """Human title for a library file: the filename without its extension."""
+        return file_path.stem
+
+    async def _upsert_library_file(self, file_path: Path) -> None:
+        """Insert one library file into the tracks table, or bump its weight if already known."""
+        async with self.db.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO tracks (id, title, weight)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (id) DO UPDATE SET
+                    weight = tracks.weight + 1
+                """,
+                str(file_path),
+                self._track_title_for(file_path),
+                20,
+            )
+
+    async def sync_library(self) -> int:
+        """Insert every library file into the tracks table. Existing rows only get their weight bumped, so repeated syncs stay idempotent."""
+        files = self._library_files()
+        if self.db is None or not files:
+            return 0
+
+        for index, file_path in enumerate(files, start=1):
+            try:
+                await self._upsert_library_file(file_path)
+                self.logger.debug(f"Library sync {index}/{len(files)}: {file_path.name}")
+            except Exception:
+                self.logger.exception(f"Failed to sync library file {file_path.name}")
+
+        self.logger.info(
+            self.format(f'{len(files)} songs in the local library are tracked.', mode=2)
+        )
+        return len(files)
+
+    async def _watch_library(self) -> None:
+        """Watch the song library at runtime and add new files to the database. Deletions are ignored on purpose: a missing file simply fails to load when played."""
+        folder = self.local_songs_path
+        if not folder or not os.path.isdir(folder):
+            self.logger.warning("No SONG_PATH set or missing — library watcher idle.")
+            return
+
+        self.logger.info(self.format(f'Watching {folder} for new songs...'))
+        try:
+            async for changes in awatch(folder, step=500, debounce=1000, stop_event=asyncio.Event()):
+                added: list[str] = []
+                for change, filename in changes:
+                    if change not in (Change.added, Change.modified):
+                        continue
+                    file_path = Path(folder) / filename
+                    if not file_path.is_file() or file_path.suffix.lower() not in Cache.AUDIO_EXTS:
+                        continue
+                    try:
+                        await self._upsert_library_file(file_path)
+                        added.append(filename)
+                    except Exception:
+                        self.logger.exception(f"Watcher failed to add {filename}")
+                if added:
+                    self.logger.info(self.format(f'New song(s) added to the database: {", ".join(added)}', mode=2))
+        except asyncio.CancelledError:
+            self.logger.info("Library watcher stopped.")
+            raise
+
+    async def start_library_sync(self) -> None:
+        """Startup sync of SONG_PATH into the database, then start the runtime watcher. Called from on_ready / on_resumed."""
+        if self.song_watcher_task is not None:
+            return  # already started
+
+        if self.db is None:
+            self.logger.error("Library sync skipped: database pool is not initialized.")
+            return
+
+        try:
+            await self._ensure_library_dir()
+            await self.sync_library()
+        except Exception:
+            self.logger.exception("Startup library sync failed.")
+
+        self.song_watcher_task = asyncio.create_task(self._watch_library(), name="library-watcher")
+
+    async def stop_library_sync(self) -> None:
+        if self.song_watcher_task is not None:
+            self.song_watcher_task.cancel()
+            try:
+                await self.song_watcher_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            self.song_watcher_task = None
+
     def get_player_lock(self, guild_id: int) -> asyncio.Lock:
         lock: Lock | None = self.player_locks.get(guild_id)
 
@@ -85,7 +201,7 @@ class BotClass(discord.Bot):
         for filename in os.listdir(logs_dir):
             file_path: Any = os.path.join(logs_dir, filename)
             if os.path.isfile(path = file_path):
-                file_mod_time: datetime = datetime.fromtimestamp(timestamp = os.path.getmtime(filename = file_path))
+                file_mod_time: datetime = datetime.fromtimestamp(timestamp = os.path.getmtime(file_path))
                 if now - file_mod_time > timedelta(days=10):
                     os.remove(path = file_path)
                     print(f'Deleted old log file: {filename}')
@@ -100,7 +216,8 @@ class BotClass(discord.Bot):
         log_filepath: str = os.path.join(logs_dir, log_filename)
 
         with open(file = log_filepath, mode = 'a') as log_file:
-            log_file.write(f'[{datetime.now().strftime(format = "%H:%M:%S")}] - {error_message}\n')
+            log_line = f'[{datetime.now().strftime(format = "%H:%M:%S")}] - {error_message}'.rstrip('\n')
+            log_file.write(log_line + '\n')
 
         self.cleanup_logs(logs_dir)
 
@@ -140,7 +257,10 @@ class BotClass(discord.Bot):
         for identifier, server in self.servers.items():
             if not server:
                 continue
-            status: Any = await server.get_status()
+            try:
+                status: Any = await server.get_status()
+            except Exception:
+                continue
             if status and getattr(status, "players", None) and getattr(status.players, "online", None) is not None:
                 status_strings.append(f"{identifier}: {status.players.online}")
 

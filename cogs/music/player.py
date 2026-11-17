@@ -95,7 +95,7 @@ class Player(pomice.Player):
             # track.uri = f'https://perfect-pig-99.telebit.io/{quote(track.title)}'
             # track.thumbnail = f'https://perfect-pig-99.telebit.io/{quote(track.title)}.png'
 
-        if track.info.get('artworkUrl'):
+        if track.info and track.info.get('artworkUrl'):
             track.thumbnail = track.info['artworkUrl']
 
         embed = discord.Embed(

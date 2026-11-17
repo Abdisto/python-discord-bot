@@ -182,12 +182,8 @@ class Minecraft(Server):
                     self.timer = 0.0
 
         except TimeoutError:
-            self.status = await server.async_status()
-
-            if not self.status.players.sample:
-                self.timer += 0.5
-            else:
-                self.timer = 0.0
+            # Keep the last known status; do not immediately retry a timed-out server.
+            return self.status
 
         if self.timer >= 30.0:
             await asyncio.to_thread(self.transfer_file, 'stop')
