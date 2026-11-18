@@ -24,7 +24,7 @@ class Queue(commands.Cog):
 
         q = player.queue.get_queue()
 
-        if q == [] and not self.bot.voice_clients[0].is_playing:
+        if q == [] and not (self.bot.voice_clients and self.bot.voice_clients[0].is_playing):
             return await ctx.respond(                
                 'Bot is not playing anything and the queue is empty.',
                 delete_after=7,

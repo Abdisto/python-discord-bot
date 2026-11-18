@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.py.bak
+logs/
+.envrc
+.venv/
+.devenv/

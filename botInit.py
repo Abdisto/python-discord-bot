@@ -12,6 +12,7 @@ sys.path.append(sys.path[0]+'/cogs')
 import asyncio
 import logging
 import signal
+import traceback
 import subprocess
 import termios
 import threading
@@ -103,6 +104,7 @@ async def on_ready() -> None:
         bot.logger.exception("Command sync failed on_ready")
 
     await connect_node()
+    await bot.start_library_sync()
     if not check_player_status.is_running():
         check_player_status.start()
     if not check_minecraft_status.is_running():
@@ -110,6 +112,7 @@ async def on_ready() -> None:
 
 @bot.event
 async def on_resumed() -> None:
+    await bot.start_library_sync()
     if not check_player_status.is_running():
         check_player_status.start()
     if not check_minecraft_status.is_running():
@@ -136,7 +139,7 @@ async def on_application_command(ctx: discord.ApplicationContext):
 
 @bot.event
 async def on_application_command_error(ctx: discord.ApplicationContext, error: discord.ApplicationCommandInvokeError):
-    bot.logger.error(bot.format(title=f'Exception thrown at {ctx.command}:\n', text=error, mode=1))
+    bot.logger.error(bot.format(title=f'Exception thrown at {ctx.command}:\n', text=f'{error}\n{traceback.format_exc()}', mode=1))
     # Removed since mishandling can cause leakage of sensitive information.
     # Especially since unloading a cog will not prevent this issue.
     # Unloaded cogs won't be saved after a reboot of the system. Might add
@@ -185,6 +188,10 @@ async def cleanup():
         voice_client = bot.voice_clients[0] if bot.voice_clients else None
         if voice_client is not None:
             await voice_client.disconnect()
+    except Exception:
+        bot.logger.exception('')
+    try:
+        await bot.stop_library_sync()
     except Exception:
         bot.logger.exception('')
 

@@ -1,3 +1,6 @@
+I'm sadly not able to write code myself, so this fork represents the Ai enshittification of my dearest friend Abdisto's code.
+
+
 # python-discord-bot
 [![MIT](https://img.shields.io/github/license/BlacklightYT/python-discord-bot?color=a3425d)](https://github.com/BlacklightYT/python-discord-bot/blob/main/LICENSE) ![Static Badge](https://img.shields.io/badge/python-3.14-brightgreen?style=flat&logo=python)
 

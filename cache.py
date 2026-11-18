@@ -3,6 +3,9 @@ from configparser import ConfigParser
 
 
 class Cache:
+    # Shared with the library scanner (BotClass) and the /play commands.
+    AUDIO_EXTS = ('.mp3', '.m4a', '.flac', '.ogg', '.opus', '.wav', '.aac', '.aiff', '.wma', '.webm', '.mka', '.oga')
+
     def __init__(self, db, logger):
         self.db = db
         self.logger = logger
